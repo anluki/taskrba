@@ -29,12 +29,10 @@ public class OsobaService {
 
 
 	public ServiceResultResponse getOsobaByOib(String oib) {
-		creditCardLogger.logInfo("START getOsobaByOib=" + oib, getClass());
-		
+		creditCardLogger.logInfo("START getOsobaByOib=" + oib, getClass());		
 		ServiceResultResponse response = new ServiceResultResponse();
 		
 		try {
-			Map<String, Osoba> map = new HashMap<String, Osoba>();
 			Osoba osoba = new Osoba();
 			
 			osoba = osobaRepository.getOsobaByOib(oib);
@@ -43,8 +41,7 @@ public class OsobaService {
 				creditCardLogger.logWarn("getOsobaByOib no data found for OIB = " + oib, getClass());
 			}
 			
-			map.put("osoba", osoba);
-			response.setResult(map);
+			response.setResult(getMapOsoba(osoba));
 			response.setSuccessTrue();
 			creditCardLogger.logInfo("getOsobaByOib response = " + response.toString(), getClass());
 			
@@ -58,10 +55,12 @@ public class OsobaService {
 	}
 
 
-	public Osoba saveOsoba(OsobaRequest osobaRequest) {
+	public ServiceResultResponse saveOsoba(OsobaRequest osobaRequest) {
+		ServiceResultResponse response = new ServiceResultResponse();		
 		creditCardLogger.logInfo("START saveOsoba=" + osobaRequest.toString(), getClass());
 		Osoba osoba = new Osoba();
 		try {
+			
 			if(osobaRequest.getId() != null) {
 				osoba.setId(osobaRequest.getId());
 			} else {
@@ -75,50 +74,95 @@ public class OsobaService {
 			osobaRepository.save(osoba);
 			creditCardLogger.logInfo("saveOsoba osoba = " + osoba.toString(), getClass());
 			
+			response.setSuccessTrue();
+			response.setResult(getMapOsoba(osoba));
+			
 		} catch (Exception e) {
 			creditCardLogger.logError("saveOsoba error=" + e.toString(), getClass());
+			response.setSuccessFalse();
+			response.setMessage("saveOsoba error = " + e.getMessage().toString());
 		}
 		creditCardLogger.logInfo("END saveOsoba=" + osoba.toString(), getClass());
-		return osoba;
+		return response;
 	}
 
 
 	public ServiceResultResponse generateCard(String oib) {
-		ServiceResultResponse response = new ServiceResultResponse();		
+		ServiceResultResponse response = new ServiceResultResponse();
 		try {
 			Osoba osoba = new Osoba();
 			osoba = osobaRepository.getOsobaForCardByOib(oib, Constants.NEMA_KARTICU);
-			if (!osoba.equals(null)) {
+			if (osoba != null) {
 				
 				Timestamp timestamp = new Timestamp(System.currentTimeMillis());
 				String fileName = osoba.getOib() + "_" + timestamp.toString() + "." + Constants.FILE_EXTENSION_CSV;
 				String dirName = osoba.getOib();
 				String content = CSVMapper.convertToCSV(osoba, true);
 				
-				System.out.println(content);
+				FileManager fileManager = new FileManager(fileName, dirName, content, creditCardLogger);
+				fileManager.saveFile();
 				
-				FileManager fileManager = new FileManager(fileName, dirName, content);
-				fileManager.saveFile();	
+				osoba.setStatus(Constants.IMA_KARTICU);
+				osobaRepository.save(osoba);
+				
+				response.setSuccessTrue();
+				response.setResult(getMapOsoba(osoba));
+				
+			} else {
+				response.setSuccessTrue();
+				response.setMessage("osoba već ima karticu ili je u izradi");
 			}
 			
 			
 		} catch (Exception e) {
 			creditCardLogger.logError("generateCard error = " + e.toString(), getClass());
+			response.setSuccessFalse();
+			response.setMessage("generateCard error = " + e.getMessage().toString());
 		}		
 		return response;
 	}
 
-
-	public ServiceResultResponse deleteOsoba(String oib) {
-
+	
+	public ServiceResultResponse deactivateCard(String oib) {
+		ServiceResultResponse response = new ServiceResultResponse();
 		try {
-			osobaRepository.delete(osobaRepository.getOsobaByOib(oib));
+			Osoba osoba = new Osoba();
+			osoba = osobaRepository.getOsobaForCardByOib(oib, Constants.IMA_KARTICU);
+			if (osoba != null) {
+								
+				String dirName = osoba.getOib();
+				
+				FileManager fileManager = new FileManager(dirName, creditCardLogger);
+				fileManager.setActiveFileToInactive();
+				
+				osoba.setStatus(Constants.NEMA_KARTICU);
+				osobaRepository.save(osoba);
+				
+				response.setSuccessTrue();
+				response.setResult(getMapOsoba(osoba));
+				
+			} else {
+				response.setSuccessTrue();
+				response.setMessage("osoba s oibom: " + oib + " ne postoji ili nema ugovorenu karticu");
+			}
+			
 			
 		} catch (Exception e) {
-			// TODO: handle exception
-		}
-		
-		return null;
+			creditCardLogger.logError("generateCard error = " + e.toString(), getClass());
+			response.setSuccessFalse();
+			response.setMessage("generateCard error = " + e.getMessage().toString());
+		}		
+		return response;
 	}
+	
+	
+	private Map<String, Osoba> getMapOsoba (Osoba o) {		
+		Map<String, Osoba> map = new HashMap<String, Osoba>();
+		map.put(Constants.OSOBA, o);
+		return map;
+	}
+
+
+
 
 }

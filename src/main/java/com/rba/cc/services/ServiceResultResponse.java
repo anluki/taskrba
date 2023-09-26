@@ -10,7 +10,7 @@ public class ServiceResultResponse{
 
 	private String message;
 	private boolean success;
-	private Map result;
+	private Map<?, ?> result;
 	
 	
 	@Override
@@ -35,10 +35,10 @@ public class ServiceResultResponse{
 		this.success = true;
 	}
 	
-	public Map getResult() {
+	public Map<?, ?> getResult() {
 		return result;
 	}
-	public void setResult(Map result) {
+	public void setResult(Map<?, ?> result) {
 		this.result = result;
 	}	
 	

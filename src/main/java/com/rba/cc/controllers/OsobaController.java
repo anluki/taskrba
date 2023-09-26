@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.rba.cc.DTO.OsobaRequest;
 import com.rba.cc.logger.CreditCardLogger;
-import com.rba.cc.models.Osoba;
 import com.rba.cc.services.OsobaService;
 import com.rba.cc.services.ServiceResultResponse;
 
@@ -34,7 +33,7 @@ public class OsobaController {
 		
 	
 	@PostMapping("/add-osoba")
-    public Osoba addOsoba(@RequestBody OsobaRequest osoba) {
+    public ServiceResultResponse addOsoba(@RequestBody OsobaRequest osoba) {
 		creditCardLogger.logInfo("add-osoba = " + osoba.toString(), getClass());
         return osobaService.saveOsoba(osoba);
     }
@@ -45,10 +44,10 @@ public class OsobaController {
         return osobaService.generateCard(oib);
     }
 	
-	@PostMapping("/delete-osoba")
-    public ServiceResultResponse deleteOsoba(@RequestParam(name = "oib")  String oib) {
-		creditCardLogger.logInfo("generate-card = " + oib, getClass());
-        return osobaService.deleteOsoba(oib);
+	@PostMapping("/deactivate-card")
+    public ServiceResultResponse deactivateCard(@RequestParam(name = "oib")  String oib) {
+		creditCardLogger.logInfo("deactivate-card = " + oib, getClass());
+        return osobaService.deactivateCard(oib);
     }
 	
 	
